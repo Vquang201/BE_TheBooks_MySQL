@@ -4,7 +4,7 @@ const Book = require('../models')
 
 
 router.get('/insert-data', BookController.insertData)
-router.get('/', BookController.bookPagination)
+router.get('/', BookController.getBooksAndQueries)
 
 
 module.exports = router

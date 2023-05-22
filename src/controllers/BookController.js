@@ -37,14 +37,13 @@ class BookController {
         }
     }
 
-    // [GET]/book?page=&&limit
-    async bookPagination(req, res) {
+    // [GET]/books?page=1&limit=10&name=man&&order=ASC
+    async getBooksAndQueries(req, res) {
         const limit = Number(req.query.limit)
         const offset = Number(req.query.page)
         const order = req.query.order
         const title = req.query.title
         const available = req.query.available
-        console.log(order)
 
         const skip = (offset * limit) - limit
 
