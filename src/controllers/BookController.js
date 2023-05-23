@@ -44,19 +44,16 @@ class BookController {
         const order = req.query.order
         const title = req.query.title
         const available = req.query.available
+        console.log(available)
 
         const skip = (offset * limit) - limit
 
         //34p24
 
-        if (offset && limit && !title) {
+        if (offset && limit && !title && !available) {
             console.log('1')
             const { count, rows } = await database.Book.findAndCountAll({
                 where: {
-                    // title: [
-                    //     [Op.literal('laughReactionsCount'), order]
-                    // ]
-
                 },
                 offset: skip,
                 limit: limit,
@@ -65,14 +62,15 @@ class BookController {
             return res.status(200).json({ rows, count })
         }
 
-        else if (title) {
-            console.log('title')
+        else if (title && available) {
             const { count, rows } = await database.Book.findAndCountAll({
                 where: {
                     title: {
                         [Op.substring]: title,
                     },
-
+                    available: {
+                        [Op.lte]: available
+                    }
                 },
                 offset: skip,
                 limit: limit,
