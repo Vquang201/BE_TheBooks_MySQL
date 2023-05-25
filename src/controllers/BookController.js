@@ -1,8 +1,10 @@
 const database = require('../models')
 const data = require('../../data/data.json')
+const cloudinary = require('cloudinary').v2;
 const { badRequest, notFound } = require('../middlewares/handleError')
 const generateCode = require('../helper/func')
-const { Op, where } = require("sequelize");
+const { Op, where } = require("sequelize")
+const { v4 } = require('uuid')
 class BookController {
     //[GET] /
     async insertData(req, res) {
@@ -44,14 +46,9 @@ class BookController {
         const order = req.query.order
         const title = req.query.title
         const available = req.query.available
-        console.log(available)
-
         const skip = (offset * limit) - limit
 
-        //34p24
-
         if (offset && limit && !title && !available) {
-            console.log('1')
             const { count, rows } = await database.Book.findAndCountAll({
                 where: {
                 },
@@ -85,10 +82,57 @@ class BookController {
 
     }
 
-    // async bookFilter (req , res) {
-    //     const 
-    // }
+    //CREATE BOOK
+    async createBook(req, res) {
+        try {
+            if (!req.body.title || !req.body.price || !req.body.available || !req.body.description || !req.body.category_code) {
+                return res.status(400).json('missing field')
+            }
 
+            const [books, created] = await database.Book.findOrCreate({
+                where: {
+                    title: req.body.title
+                },
+                defaults: {
+                    id: v4(),
+                    title: req.body.title,
+                    price: req.body.price,
+                    available: req.body.available,
+                    description: req.body.description,
+                    category_code: req.body.category_code,
+                    image: req.file?.path
+                }
+            })
+
+            if (created) {
+                return res.status(200).json(books)
+            } else {
+
+                // delete image from cloudinary
+                if (req.file.path) {
+                    cloudinary.uploader.destroy(req.file.filename, (err, result) => {
+                        if (err) {
+                            console.log({ err: err })
+                        }
+                    })
+                }
+
+                return res.status(500).json('title already exists')
+
+            }
+
+        } catch (error) {
+            // delete image from cloudinary
+            if (req.file.path) {
+                cloudinary.uploader.destroy(req.file.filename, (err, result) => {
+                    if (err) {
+                        console.log({ err: err })
+                    }
+                })
+            }
+            return res.status(500).json({ mess: error })
+        }
+    }
 
 }
 

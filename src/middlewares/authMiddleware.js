@@ -35,9 +35,6 @@ const isModerator = (req, res, next) => {
     next()
 }
 
-const isUser = (req, res, next) => {
-
-}
 
 module.exports = {
     verifyToken,
