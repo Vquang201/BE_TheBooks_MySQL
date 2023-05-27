@@ -26,5 +26,5 @@ routes(app)
 
 //PORT
 app.listen('8000', () => {
-    console.log('Sever is running ...')
+    console.log('Server is running ...')
 })

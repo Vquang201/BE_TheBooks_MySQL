@@ -1,10 +1,12 @@
 const database = require('../models')
 const data = require('../../data/data.json')
 const cloudinary = require('cloudinary').v2;
-const { badRequest, notFound } = require('../middlewares/handleError')
+const { badRequest, notFound, internalSeverError } = require('../middlewares/handleError')
 const generateCode = require('../helper/func')
 const { Op, where } = require("sequelize")
 const { v4 } = require('uuid')
+require('dotenv').config()
+
 class BookController {
     //[GET] /
     async insertData(req, res) {
@@ -41,14 +43,15 @@ class BookController {
 
     // [GET]/books?page=1&limit=10&name=man&&order=ASC
     async getBooksAndQueries(req, res) {
-        const limit = Number(req.query.limit)
+        const limit = Number(process.env.LIMIT_PAGE)
         const offset = Number(req.query.page)
         const order = req.query.order
         const title = req.query.title
         const available = req.query.available
         const skip = (offset * limit) - limit
 
-        if (offset && limit && !title && !available) {
+
+        if (offset && !title && !available) {
             const { count, rows } = await database.Book.findAndCountAll({
                 where: {
                 },
@@ -76,6 +79,14 @@ class BookController {
             })
             return res.status(200).json({ rows, count })
         }
+        else if (!title && !available && !order && !offset) {
+            try {
+                const books = await database.Book.findAll({})
+                res.status(200).json(books)
+            } catch (error) {
+                res.status(500).json('mess : NOT GET ALL BOOKS')
+            }
+        }
         else {
             return notFound(req, res)
         }
@@ -100,7 +111,8 @@ class BookController {
                     available: req.body.available,
                     description: req.body.description,
                     category_code: req.body.category_code,
-                    image: req.file?.path
+                    image: req.file?.path,
+                    file_name: req.file?.filename
                 }
             })
 
@@ -123,14 +135,90 @@ class BookController {
 
         } catch (error) {
             // delete image from cloudinary
-            if (req.file.path) {
+            if (req.file?.path) {
+                cloudinary.uploader.destroy(req.file?.filename, (err, result) => {
+                    if (err) {
+                        console.log({ err: err })
+                    }
+                })
+            }
+            return internalSeverError(req, res)
+        }
+    }
+
+    async updateBook(req, res) {
+        try {
+            let getFileName
+
+            if (req.file) {
+                // GET FILENAME trong db 
+                getFileName = await database.Book.findOne({ where: { id: req.params.id } })
+                req.body.image = req.file?.path
+                //filename đc cập nhật
+                req.body.file_name = req.file.filename
+            }
+
+            if (Object.keys(req.body).length === 0) {
+                cloudinary.uploader.destroy(req.file?.filename, (err, result) => {
+                    if (err) {
+                        console.log({ err: err })
+                    }
+                })
+                return res.status(400).json({ mess: 'Need To Update At Least 1 field ' })
+            }
+
+            // DELETE filename cũ trong cloud để update filename mới
+            if (getFileName.file_name) {
+                cloudinary.uploader.destroy(getFileName.file_name, (err, result) => {
+                    if (err) {
+                        console.log({ err: err })
+                    }
+                })
+            }
+
+            await database.Book.update(req.body, {
+                where: { id: req.params.id }
+            })
+
+            return res.status(200).json({ mess: 'UPDATE SUCCESSFULLY !' })
+
+
+        } catch (error) {
+            if (req.file) {
                 cloudinary.uploader.destroy(req.file.filename, (err, result) => {
                     if (err) {
                         console.log({ err: err })
                     }
                 })
             }
-            return res.status(500).json({ mess: error })
+            return internalSeverError(req, res)
+        }
+
+    }
+
+    // [DELETE] /books/delete/:id
+    async deleteBook(req, res, next) {
+        try {
+            // GET FILE NAME TRONG ĐỂ XÓA
+            let getFileName = await database.Book.findOne({ where: { id: req.params.id } })
+            // NOTE : Xóa file image ở trong cloudinary
+            if (getFileName.file_name) {
+                cloudinary.uploader.destroy(getFileName.file_name, (err, result) => {
+                    if (err) {
+                        console.log({ err: err })
+                    }
+                })
+            }
+
+            // Xóa trong database
+            await database.Book.destroy({
+                where: { id: req.params.id }
+            })
+
+            return res.status(200).json({ mess: 'DELETE SUCCESSFULLY !' })
+
+        } catch (error) {
+            return internalSeverError(req, res)
         }
     }
 
