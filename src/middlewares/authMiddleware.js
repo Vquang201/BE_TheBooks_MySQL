@@ -1,6 +1,5 @@
 const jwt = require('jsonwebtoken')
 const { badRequest, unauthorized } = require('./handleError')
-const authController = require('../controllers/authController')
 
 // CHECK TOKEN
 const verifyToken = (req, res, next) => {
@@ -10,6 +9,7 @@ const verifyToken = (req, res, next) => {
         return badRequest('require Login !!!', res)
     }
 
+    // Bearer đasadsa
     const accessToken = token.split(' ')[1]
     jwt.verify(accessToken, process.env.JWT_SCRET, (err, decode) => {
         if (err) {

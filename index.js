@@ -2,7 +2,7 @@ const express = require('express')
 const app = express()
 const cors = require('cors')
 require('dotenv').config()
-const PORT = process.env.PORT || 8080
+const PORT = process.env.PORT || 8000
 const routes = require('./src/routes')
 const DataBase = require('./sequelize_db')
 
@@ -25,6 +25,6 @@ app.use(express.urlencoded({ extended: true }))
 routes(app)
 
 //PORT
-app.listen('8000', () => {
+app.listen(PORT, () => {
     console.log('Server is running ...')
 })
