@@ -12,9 +12,15 @@ const verifyToken = (req, res, next) => {
     // Bearer đasadsa
     const accessToken = token.split(' ')[1]
     jwt.verify(accessToken, process.env.JWT_SCRET, (err, decode) => {
+        const isChecked = err instanceof jwt.TokenExpiredError
         if (err) {
-            return unauthorized('TOKEN ERROR', res)
+            if (isChecked) {
+                return unauthorized('TOKEN EXPIRED', res)
+            } else {
+                return unauthorized('ACCESS TOKEN INVALID', res)
+            }
         }
+
 
         req.user = decode
         next()
